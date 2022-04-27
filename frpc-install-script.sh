@@ -19,7 +19,7 @@ install_packages() {
             shift
         done
         # Check if we have any packages to install
-        [ -z "${packages}" ] && { echo "* All requested packages are already installed"; exit 0; } || { echo "* Installing ${packages:1}"; apt update; apt install -y ${packages}; }
+        [ -z "${packages}" ] && { echo "* All requested packages are already installed"; return 0; } || { echo "* Installing ${packages:1}"; apt update; apt install -y ${packages}; }
     }
 }
 
@@ -34,10 +34,16 @@ frpc_system()
     FRPC_FILENAME=frp_${FRPC_VERSION#v}_linux_${FRPC_ARCH}.tar.gz
     FRPC_DIRECTORY=frp_${FRPC_VERSION#v}_linux_${FRPC_ARCH}
     FRPC_URL=https://github.com/fatedier/frp/releases/download/${FRPC_VERSION}/${FRPC_FILENAME}
+    echo "* FRPC INSTALL"
+    echo "* Version: ${FRPC_VERSION}"
+    echo "* Filename: ${FRPC_FILENAME}"
+    echo "* Install Directory: ${FRPC_DIRECTORY}"
+    echo "* Download URL: ${FRPC_URL}"
+ 
 
     # Set /tmp as active directory and do our tasks
     pushd /tmp
-    wget "${FRPC_URL}"
+    curl -L "${FRPC_URL}" -o "${FRPC_FILENAME}"
     tar xfz "${FRPC_FILENAME}"
 
     # Install FRPC Config
