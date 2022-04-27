@@ -5,11 +5,29 @@
 # Exit on error
 set -e
 
+# Install Packages
+install_packages() {
+    # if we received packages to install, install them
+    [ $# -eq 0 ] && echo "* No packages requested to install" || {
+        # Local variable to hold our packages
+        local packages
+        # Loop through our passed packages
+        while [ $# -gt 0 ]; do
+            # Check if the command exists, if not flag it for installation
+            [ -x "$(command -v "${1}")" ] && echo "* ${1} is already installed" || { echo "* ${1} will be installed"; packages="${packages} ${1}"; }
+            # Shift to the next package
+            shift
+        done
+        # Check if we have any packages to install
+        [ -z "${packages}" ] && { echo "* All requested packages are already installed"; exit 0; } || { echo "* Installing ${packages:1}"; apt update; apt install -y ${packages}; }
+    }
+}
+
 # Functions
 frpc_system()
 {
     # Install our required packages
-    apt update; apt install -y jq curl
+    install_packages jq curl
 
     # Find the newest tag and set it, along with other required variables
     FRPC_VERSION=`curl --silent "https://api.github.com/repos/fatedier/frp/releases/latest" | jq -r .tag_name`
@@ -30,11 +48,13 @@ frpc_system()
 
     # If the frpc service is not active, install it and start it, otherwise restart it
     [ "$(systemctl show -p ActiveState frpc | sed 's/ActiveState=//g')" != "active" ] && {
+        echo "* Installing, enabling and starting frpc service"
         cp "${FRPC_DIRECTORY}"/systemd/frpc.service /etc/systemd/system/frpc.service
         systemctl daemon-reload;
         systemctl enable frpc;
         systemctl start frpc;
     } || {
+        echo "* Wrote new config; restarting frpc"
         systemctl restart frpc;
     }
 
@@ -48,8 +68,9 @@ frpc_docker()
     # Check if docker is installed, if not install it
     [ -x "$(command -v docker)" ] && echo "* Docker is already installed" || {
         echo "* Installing Docker"
+
         # Install our required packages
-        apt update; apt install -y curl
+        install_packages curl
 
         # Pull docker install script and run it
         curl -fsSL https://get.docker.com | sh
@@ -87,37 +108,39 @@ remote_port = 443
 EOF
 }
 
-# Display our pretty banner
-echo "                                                                      "
-echo " ███████████             ███                         █████            "
-echo "░░███░░░░░███           ░░░                         ░░███             "
-echo " ░███    ░███ ████████  ████  █████ █████  ██████   ███████    ██████ "
-echo " ░██████████ ░░███░░███░░███ ░░███ ░░███  ░░░░░███ ░░░███░    ███░░███"
-echo " ░███░░░░░░   ░███ ░░░  ░███  ░███  ░███   ███████   ░███    ░███████ "
-echo " ░███         ░███      ░███  ░░███ ███   ███░░███   ░███ ███░███░░░  "
-echo " █████        █████     █████  ░░█████   ░░████████  ░░█████ ░░██████ "
-echo "░░░░░        ░░░░░     ░░░░░    ░░░░░     ░░░░░░░░    ░░░░░   ░░░░░░  "
-echo "                                                                      "
-echo "                                                                      "
-echo " ███████████                        █████                             "
-echo "░░███░░░░░███                      ░░███                              "
-echo " ░███    ░███   ██████  █████ ████ ███████    ██████  ████████        "
-echo " ░██████████   ███░░███░░███ ░███ ░░░███░    ███░░███░░███░░███       "
-echo " ░███░░░░░███ ░███ ░███ ░███ ░███   ░███    ░███████  ░███ ░░░        "
-echo " ░███    ░███ ░███ ░███ ░███ ░███   ░███ ███░███░░░   ░███            "
-echo " █████   █████░░██████  ░░████████  ░░█████ ░░██████  █████           "
-echo "░░░░░   ░░░░░  ░░░░░░    ░░░░░░░░    ░░░░░   ░░░░░░  ░░░░░            "
-echo "                                                                      "
-echo "                                                                      "                                                                   
-echo " ███████████ ███████████   ███████████    █████████                   "
-echo "░░███░░░░░░█░░███░░░░░███ ░░███░░░░░███  ███░░░░░███                  "
-echo " ░███   █ ░  ░███    ░███  ░███    ░███ ███     ░░░                   "
-echo " ░███████    ░██████████   ░██████████ ░███                           "
-echo " ░███░░░█    ░███░░░░░███  ░███░░░░░░  ░███                           "
-echo " ░███  ░     ░███    ░███  ░███        ░░███     ███                  "
-echo " █████       █████   █████ █████        ░░█████████                   "
-echo "░░░░░       ░░░░░   ░░░░░ ░░░░░          ░░░░░░░░░                    "
-echo "                                                                      " 
+banner() {
+    # Display our pretty banner
+    echo "                                                                      "
+    echo " ███████████             ███                         █████            "
+    echo "░░███░░░░░███           ░░░                         ░░███             "
+    echo " ░███    ░███ ████████  ████  █████ █████  ██████   ███████    ██████ "
+    echo " ░██████████ ░░███░░███░░███ ░░███ ░░███  ░░░░░███ ░░░███░    ███░░███"
+    echo " ░███░░░░░░   ░███ ░░░  ░███  ░███  ░███   ███████   ░███    ░███████ "
+    echo " ░███         ░███      ░███  ░░███ ███   ███░░███   ░███ ███░███░░░  "
+    echo " █████        █████     █████  ░░█████   ░░████████  ░░█████ ░░██████ "
+    echo "░░░░░        ░░░░░     ░░░░░    ░░░░░     ░░░░░░░░    ░░░░░   ░░░░░░  "
+    echo "                                                                      "
+    echo "                                                                      "
+    echo " ███████████                        █████                             "
+    echo "░░███░░░░░███                      ░░███                              "
+    echo " ░███    ░███   ██████  █████ ████ ███████    ██████  ████████        "
+    echo " ░██████████   ███░░███░░███ ░███ ░░░███░    ███░░███░░███░░███       "
+    echo " ░███░░░░░███ ░███ ░███ ░███ ░███   ░███    ░███████  ░███ ░░░        "
+    echo " ░███    ░███ ░███ ░███ ░███ ░███   ░███ ███░███░░░   ░███            "
+    echo " █████   █████░░██████  ░░████████  ░░█████ ░░██████  █████           "
+    echo "░░░░░   ░░░░░  ░░░░░░    ░░░░░░░░    ░░░░░   ░░░░░░  ░░░░░            "
+    echo "                                                                      "
+    echo "                                                                      "                                                                   
+    echo " ███████████ ███████████   ███████████    █████████                   "
+    echo "░░███░░░░░░█░░███░░░░░███ ░░███░░░░░███  ███░░░░░███                  "
+    echo " ░███   █ ░  ░███    ░███  ░███    ░███ ███     ░░░                   "
+    echo " ░███████    ░██████████   ░██████████ ░███                           "
+    echo " ░███░░░█    ░███░░░░░███  ░███░░░░░░  ░███                           "
+    echo " ░███  ░     ░███    ░███  ░███        ░░███     ███                  "
+    echo " █████       █████   █████ █████        ░░█████████                   "
+    echo "░░░░░       ░░░░░   ░░░░░ ░░░░░          ░░░░░░░░░                    "
+    echo "                                                                      " 
+}
 
 # Check if we are root
 [ "$EUID" -ne 0 ] && { echo "Please run as root"; exit 1; }
@@ -178,7 +201,6 @@ while (( "${#}" )); do
     shift
 done
 
-
 # If we are running docker install, skip this
 [ -z "${DOCKER}" ] && { 
     # If force is not set and FRPC is already installed, exit
@@ -202,16 +224,17 @@ if [ ! -z "${ERRORS}" ]; then
     exit 1
 fi
 
-
 # Determine our OS Architecture
 case "$(uname -m)" in
     x86_64) FRPC_ARCH='amd64';;
     aarch64) FRPC_ARCH='arm64';;
     armv7l) FRPC_ARCH='arm';;
+    i686) [ -z "${DOCKER}" ] && FRPC_ARCH='386' || { echo "== !! Docker will not install on i686 systems"; exit 1; };;
     *) echo "== !! unsupported architecture $(uname -m)"; exit 1 ;;
 esac
 
-
+# Show banner
+banner
 
 # If docker is flagged install docker frpc, otherwise install system version of frpc
 [ -z "${DOCKER}" ] && frpc_system || frpc_docker
