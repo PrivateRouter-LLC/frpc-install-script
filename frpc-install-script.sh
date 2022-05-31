@@ -2,6 +2,9 @@
 # FRPC Installer Script for PrivateRouter FRPC
 # Coded by Jason Hawks <jason@fixedbit.com>
 
+# Set the version of FRP, but you can override this with -v or --version
+FRPC_VERSION="0.43.0"
+
 # Exit on error
 set -e
 
@@ -26,13 +29,15 @@ install_packages() {
 # Functions
 frpc_system()
 {
-    # Install our required packages
-    install_packages jq curl
+    # Link to our hosted frpc.service (since it was removed from the release)
+    FRPC_SERVICE_URL="https://raw.githubusercontent.com/PrivateRouter-LLC/frpc-install-script/main/systemd/frpc.service"
 
-    # Find the newest tag and set it, along with other required variables
-    FRPC_VERSION=`curl --silent "https://api.github.com/repos/fatedier/frp/releases/latest" | jq -r .tag_name`
-    FRPC_FILENAME=frp_${FRPC_VERSION#v}_linux_${FRPC_ARCH}.tar.gz
-    FRPC_DIRECTORY=frp_${FRPC_VERSION#v}_linux_${FRPC_ARCH}
+    # Install our required packages
+    install_packages curl
+
+    # Download our specified FRP Version
+    FRPC_FILENAME=frp_${FRPC_VERSION}_linux_${FRPC_ARCH}.tar.gz
+    FRPC_DIRECTORY=frp_${FRPC_VERSION}_linux_${FRPC_ARCH}
     FRPC_URL=https://github.com/fatedier/frp/releases/download/${FRPC_VERSION}/${FRPC_FILENAME}
     echo "* FRPC INSTALL"
     echo "* Version: ${FRPC_VERSION}"
@@ -55,7 +60,7 @@ frpc_system()
     # If the frpc service is not active, install it and start it, otherwise restart it
     [ "$(systemctl show -p ActiveState frpc | sed 's/ActiveState=//g')" != "active" ] && {
         echo "* Installing, enabling and starting frpc service"
-        cp "${FRPC_DIRECTORY}"/systemd/frpc.service /etc/systemd/system/frpc.service
+        curl -L "${FRPC_SERVICE_URL}" -o /etc/systemd/system/frpc.service
         systemctl daemon-reload;
         systemctl enable frpc;
         systemctl start frpc;
@@ -161,6 +166,7 @@ show_help()
     echo "* [-s 123.456.789.012]* sets the FRP Server Address"
     echo "* [-p 7000] sets the FRP Server Port"
     echo "* [-t abcd12345]* sets the FRP Server Token"
+    echo "* [-v ${FRPC_VERSION} ] sets the FRP Version Manually"
     echo "* [-d] Flags this as docker container install"
     echo "* [-c] Cleans the history after install"
     echo "* Example: ${SCRIPT_NAME} -s 123.456.789.012 -t abcd12345"
@@ -186,6 +192,10 @@ while (( "${#}" )); do
             ;;
         -t|--token)
             [[ ${2} != -* && ! -z ${2} ]] && { FRP_TOKEN="${2}"; echo "Using FRP Token: ${2}"; } || { ERRORS+=("Invalid FRP Token passed to -t"); }
+            shift
+            ;;
+        -v|--version)
+            [[ ${2} != -* && ! -z ${2} ]] && { FRPC_VERSION="${2}"; echo "Using FRP Version: ${2}"; } || { ERRORS+=("Invalid FRP Version passed to -v"); }
             shift
             ;;
         -f|--force)
