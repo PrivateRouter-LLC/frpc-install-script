@@ -38,7 +38,7 @@ frpc_system()
     # Download our specified FRP Version
     FRPC_FILENAME=frp_${FRPC_VERSION}_linux_${FRPC_ARCH}.tar.gz
     FRPC_DIRECTORY=frp_${FRPC_VERSION}_linux_${FRPC_ARCH}
-    FRPC_URL=https://github.com/fatedier/frp/releases/download/${FRPC_VERSION}/${FRPC_FILENAME}
+    FRPC_URL=https://github.com/fatedier/frp/releases/download/v${FRPC_VERSION}/${FRPC_FILENAME}
     echo "* FRPC INSTALL"
     echo "* Version: ${FRPC_VERSION}"
     echo "* Filename: ${FRPC_FILENAME}"
